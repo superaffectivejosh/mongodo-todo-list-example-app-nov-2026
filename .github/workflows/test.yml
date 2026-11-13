@@ -1,0 +1,36 @@
+name: Tests
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      mongodb:
+        image: mongo:8.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ping:1})'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: "0.13.6"
+          enable-cache: false
+          python-version: "3.13"
+      - run: uv sync --locked
+      - run: uv run --locked pytest -q
+        env:
+          RUN_MONGODB_TESTS: "1"
+          MONGODB_URI: mongodb://127.0.0.1:27017/little_wins_test
+          MONGODB_DATABASE: little_wins_test
